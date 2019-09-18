@@ -1,2 +1,2 @@
 include ':app'
-rootProject.name='Reminder App'
+rootProject.name='Reminder Localstorage'

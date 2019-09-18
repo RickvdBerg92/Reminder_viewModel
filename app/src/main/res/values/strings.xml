@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Reminder Level 3 Kotlin</string>
+    <string name="app_name">Reminder Level 4 Kotlin</string>
     <string name="warning_input_field_empty">You must fill in the input field!</string>
     <string name="add_reminder">Add your reminder</string>
     <string name="title_activity_add">Add Activity</string>

@@ -12,17 +12,23 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : AppCompatActivity() {
 
     private val reminders = arrayListOf<Reminder>()
     private val reminderAdapter = ReminderAdapter(reminders)
+    private lateinit var reminderRepository: ReminderRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
+        reminderRepository = ReminderRepository(this)
         initViews()
     }
 
@@ -44,8 +50,14 @@ class MainActivity : AppCompatActivity() {
             when (requestCode) {
                 ADD_REMINDER_REQUEST_CODE -> {
                     val reminder = data!!.getParcelableExtra<Reminder>(AddActivity.EXTRA_REMINDER)
-                    reminders.add(reminder)
-                    reminderAdapter.notifyDataSetChanged()
+
+
+                    CoroutineScope(Dispatchers.Main).launch {
+                        withContext(Dispatchers.IO) {
+                            reminderRepository.insertReminder(reminder)
+                        }
+                        getRemindersFromDatabase()
+                    }
                 }
             }
         }
@@ -62,8 +74,20 @@ class MainActivity : AppCompatActivity() {
             )
         )
         createItemTouchHelper().attachToRecyclerView(rvReminders)
+        getRemindersFromDatabase()
         fab.setOnClickListener {
             startAddActivity()
+        }
+    }
+
+    private fun getRemindersFromDatabase() {
+        CoroutineScope(Dispatchers.Main).launch {
+            val reminders = withContext(Dispatchers.IO) {
+                reminderRepository.getAllReminders()
+            }
+            this@MainActivity.reminders.clear()
+            this@MainActivity.reminders.addAll(reminders)
+            reminderAdapter.notifyDataSetChanged()
         }
     }
 
@@ -79,8 +103,14 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
-                reminders.removeAt(position)
-                reminderAdapter.notifyDataSetChanged()
+                val reminderToDelete = reminders[position]
+
+                CoroutineScope(Dispatchers.Main).launch {
+                    withContext(Dispatchers.IO) {
+                        reminderRepository.deleteReminder(reminderToDelete)
+                    }
+                    getRemindersFromDatabase()
+                }
             }
         }
         return ItemTouchHelper(callback)
